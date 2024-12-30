@@ -6,8 +6,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import ie.setu.tazq.data.Task
+import ie.setu.tazq.data.model.TaskModel
 import ie.setu.tazq.data.repository.TaskRepository
 import ie.setu.tazq.firebase.services.AuthService
+import ie.setu.tazq.firebase.services.FirestoreService
 import ie.setu.tazq.ui.components.task.TaskPriority
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,10 +20,10 @@ import javax.inject.Inject
 @HiltViewModel
 class TaskViewModel @Inject constructor(
     private val repository: TaskRepository,
-    private val authService: AuthService // Inject AuthService here
+    private val authService: AuthService,
+    private val firestoreService: FirestoreService
 ) : ViewModel() {
 
-    // Current user ID
     val currentUserId: String = authService.currentUserId
 
     private val _taskTitle = MutableStateFlow("")
@@ -45,12 +47,17 @@ class TaskViewModel @Inject constructor(
     private val _showConfirmation = MutableStateFlow(false)
     val showConfirmation: StateFlow<Boolean> = _showConfirmation.asStateFlow()
 
-    // New state for tracking field interaction
     private val _titleTouched = mutableStateOf(false)
     val titleTouched: State<Boolean> = _titleTouched
 
     private val _descriptionTouched = mutableStateOf(false)
     val descriptionTouched: State<Boolean> = _descriptionTouched
+
+    private val _selectedFamilyGroupId = MutableStateFlow<String?>(null)
+    val selectedFamilyGroupId: StateFlow<String?> = _selectedFamilyGroupId.asStateFlow()
+
+    private val _assignedUserIds = MutableStateFlow<List<String>>(emptyList())
+    val assignedUserIds: StateFlow<List<String>> = _assignedUserIds.asStateFlow()
 
     fun updateTaskTitle(title: String) {
         _taskTitle.value = title
@@ -92,6 +99,14 @@ class TaskViewModel @Inject constructor(
         _showConfirmation.value = false
     }
 
+    fun updateSelectedFamilyGroupId(groupId: String?) {
+        _selectedFamilyGroupId.value = groupId
+    }
+
+    fun updateAssignedUserIds(userIds: List<String>) {
+        _assignedUserIds.value = userIds
+    }
+
     fun addTask() {
         if (!isFormValid()) return
 
@@ -100,11 +115,24 @@ class TaskViewModel @Inject constructor(
             title = _taskTitle.value,
             priority = _taskPriority.value,
             description = _taskDescription.value,
-            category = _selectedCategory.value
+            category = _selectedCategory.value,
+            familyGroupId = _selectedFamilyGroupId.value,
+            assignedUserIds = _assignedUserIds.value
+        )
+
+        val newTaskModel = TaskModel(
+            title = _taskTitle.value,
+            priority = _taskPriority.value.name,
+            description = _taskDescription.value,
+            category = _selectedCategory.value,
+            familyGroupId = _selectedFamilyGroupId.value,
+            assignedUserIds = _assignedUserIds.value,
+            email = authService.email!!,
         )
 
         viewModelScope.launch {
-            repository.insert(newTask)
+            repository.insert(newTask) // Insert into local Room database
+            firestoreService.insert(authService.email!!, newTaskModel) // Insert into Firestore
             showConfirmation()
             resetForm()
         }
@@ -119,6 +147,8 @@ class TaskViewModel @Inject constructor(
         _isDescriptionValid.value = false
         _titleTouched.value = false
         _descriptionTouched.value = false
+        _selectedFamilyGroupId.value = null
+        _assignedUserIds.value = emptyList()
     }
 
     fun getTitleErrorMessage(): String? {

@@ -1,5 +1,6 @@
 package ie.setu.tazq.firebase.database
 
+import android.util.Log
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.dataObjects
@@ -133,5 +134,30 @@ class FirestoreRepository
     override suspend fun addUserToFamilyGroup(groupId: String, userId: String) {
         val groupRef = firestore.collection(Constants.FAMILY_GROUP_COLLECTION).document(groupId)
         groupRef.update("memberIds", FieldValue.arrayUnion(userId)).await()
+    }
+
+    override suspend fun getTasksByFamilyGroup(groupId: String): Tasks {
+        return firestore.collection(TASK_COLLECTION)
+            .whereEqualTo("familyGroupId", groupId)
+            .dataObjects()
+    }
+
+    override suspend fun getTasksAssignedToUser(userId: String, groupId: String?): Tasks {
+        val query = if (groupId != null) {
+            firestore.collection(TASK_COLLECTION)
+                .whereEqualTo("familyGroupId", groupId)
+                .whereArrayContains("assignedUserIds", userId)
+        } else {
+            firestore.collection(TASK_COLLECTION)
+                .whereArrayContains("assignedUserIds", userId)
+        }
+        return query.dataObjects()
+    }
+
+    override suspend fun updateTaskAssignments(taskId: String, assignedUserIds: List<String>) {
+        firestore.collection(TASK_COLLECTION)
+            .document(taskId)
+            .update("assignedUserIds", assignedUserIds)
+            .await()
     }
 }

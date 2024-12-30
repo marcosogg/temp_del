@@ -15,5 +15,7 @@ data class Task(
     val description: String = "No description",
     val category: String = "Personal",
     val dateCreated: Date = Date(),
-    val isDone: Boolean = false
+    val isDone: Boolean = false,
+    val familyGroupId: String? = null, // Add this line
+    val assignedUserIds: List<String> = emptyList() // Add this line
 )

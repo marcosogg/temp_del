@@ -1,3 +1,4 @@
+// ui/screens/tasklist/TaskListViewModel.kt
 package ie.setu.tazq.ui.screens.tasklist
 
 import androidx.lifecycle.ViewModel
@@ -11,22 +12,32 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import ie.setu.tazq.firebase.services.FirestoreService
+import ie.setu.tazq.data.model.TaskModel
 
 @HiltViewModel
 class TaskListViewModel @Inject constructor(
     private val repository: TaskRepository,
-    private val authService: AuthService // Inject AuthService
+    private val authService: AuthService,
+    private val firestoreService: FirestoreService
 ) : ViewModel() {
     private val _tasks = MutableStateFlow<List<Task>>(emptyList())
     val tasks: StateFlow<List<Task>> = _tasks.asStateFlow()
 
-    // Get userId from AuthService
+    private val _taskModels = MutableStateFlow<List<TaskModel>>(emptyList())
+    val taskModels: StateFlow<List<TaskModel>> = _taskModels.asStateFlow()
+
     private val currentUserId: String = authService.currentUserId
 
     init {
         viewModelScope.launch {
             repository.getAll(userId = currentUserId).collect { listOfTasks ->
                 _tasks.value = listOfTasks
+            }
+        }
+        viewModelScope.launch {
+            firestoreService.getAll(authService.email!!).collect { listOfTasks ->
+                _taskModels.value = listOfTasks
             }
         }
     }
@@ -77,3 +88,4 @@ enum class SortOption {
     PRIORITY,
     CATEGORY
 }
+

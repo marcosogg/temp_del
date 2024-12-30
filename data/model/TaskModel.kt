@@ -14,7 +14,9 @@ data class TaskModel(
     val dateCreated: Date = Date(),
     val dateModified: Date = Date(),
     val isDone: Boolean = false,
-    var email: String = "joe@bloggs.com"  // Required for Firebase
+    var email: String = "joe@bloggs.com",  // Required for Firebase
+    val familyGroupId: String? = null, // Add this line for Family Group ID
+    val assignedUserIds: List<String> = emptyList() // Add this line for assigned user IDs
 )
 
 // For testing/preview purposes

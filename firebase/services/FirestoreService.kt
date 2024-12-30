@@ -23,11 +23,28 @@ interface FirestoreService {
     suspend fun removeUserFromFamilyGroup(groupId: String, userId: String)
     suspend fun getUserProfile(userId: String): User?
     suspend fun createInvitation(invitation: Invitation)
-
-    // Add these missing method signatures
     suspend fun getInvitationsByRecipient(email: String): Flow<List<Invitation>>
     suspend fun updateInvitationStatus(invitationId: String, status: InvitationStatus)
     suspend fun addUserToFamilyGroup(groupId: String, userId: String)
-    suspend fun updateUserProfile(user: User) // Add this method to update user profile
+    suspend fun updateUserProfile(user: User)
+    /**
+     * Retrieves a flow of tasks associated with a specific family group.
+     * @param groupId The ID of the family group.
+     * @return A flow emitting a list of tasks for the specified group.
+     */
+    suspend fun getTasksByFamilyGroup(groupId: String): Tasks
 
+    /**
+     * Retrieves a flow of tasks assigned to a user, optionally within a specific group.
+     * @param userId The ID of the user.
+     * @param groupId (Optional) The ID of the family group to filter by. If null, all assigned tasks for the user are retrieved
+     * @return A flow emitting a list of tasks assigned to the user
+     */
+    suspend fun getTasksAssignedToUser(userId: String, groupId: String?): Tasks
+    /**
+     * Updates the list of user IDs assigned to a specific task.
+     * @param taskId The ID of the task to update.
+     * @param assignedUserIds List of user ids of the users that a task has been assigned to.
+     */
+    suspend fun updateTaskAssignments(taskId: String, assignedUserIds: List<String>)
 }

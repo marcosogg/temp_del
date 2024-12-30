@@ -24,8 +24,4 @@ object RoomModule {
     @Provides
     fun provideTaskDAO(appDatabase: AppDatabase): TaskDAO =
         appDatabase.getTaskDAO()
-
-    @Provides
-    fun provideTaskRepository(taskDAO: TaskDAO): TaskRepository =
-        TaskRepository(taskDAO)
 }

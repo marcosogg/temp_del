@@ -8,13 +8,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -22,11 +30,14 @@ import ie.setu.tazq.ui.components.task.CategoryDropdown
 import ie.setu.tazq.ui.components.task.RadioButtonGroup
 import ie.setu.tazq.ui.components.task.TaskDescription
 import ie.setu.tazq.ui.components.task.TaskInput
+import ie.setu.tazq.ui.viewmodel.FamilyGroupViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskScreen(
     modifier: Modifier = Modifier,
-    viewModel: TaskViewModel = hiltViewModel()
+    viewModel: TaskViewModel = hiltViewModel(),
+    familyGroupViewModel: FamilyGroupViewModel = hiltViewModel()
 ) {
     val taskTitle by viewModel.taskTitle.collectAsState()
     val taskDescription by viewModel.taskDescription.collectAsState()
@@ -37,6 +48,9 @@ fun TaskScreen(
     val showConfirmation by viewModel.showConfirmation.collectAsState()
     val titleTouched by viewModel.titleTouched
     val descriptionTouched by viewModel.descriptionTouched
+    val selectedFamilyGroupId by viewModel.selectedFamilyGroupId.collectAsState()
+    val assignedUserIds by viewModel.assignedUserIds.collectAsState()
+    val familyGroups by familyGroupViewModel.familyGroups.collectAsState()
 
     if (showConfirmation) {
         AlertDialog(
@@ -100,6 +114,49 @@ fun TaskScreen(
             isError = descriptionTouched && !isDescriptionValid,
             errorMessage = if (descriptionTouched) viewModel.getDescriptionErrorMessage() else null
         )
+
+        // Family Group Selection
+        var expanded by remember { mutableStateOf(false) }
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                modifier = Modifier.fillMaxWidth().menuAnchor(),
+                readOnly = true,
+                value = selectedFamilyGroupId ?: "Select Family Group",
+                onValueChange = { },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(
+                        expanded = expanded
+                    )
+                },
+                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                DropdownMenuItem(
+                    text = { Text("None (Private Task)") },
+                    onClick = {
+                        viewModel.updateSelectedFamilyGroupId(null)
+                        expanded = false
+                    }
+                )
+                familyGroups.forEach { group ->
+                    DropdownMenuItem(
+                        text = { Text(group.groupName) },
+                        onClick = {
+                            viewModel.updateSelectedFamilyGroupId(group.groupId)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
 
         Button(
             onClick = { viewModel.addTask() },
